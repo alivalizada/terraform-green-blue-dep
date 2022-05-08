@@ -14,7 +14,7 @@ What we need to reach our goal:
 
 # As we are creating resources in AWS Cloud, provider will be chosen as "aws" and additionally we include argument - region, in order to clarify in which region we will create our resources
 provider "aws" {
-    region = "eu-central-1"
+    region = var.region
 }
 
 # We are choosing all availability zones in current region
@@ -54,7 +54,7 @@ resource "aws_default_subnet" "default_sub_az2" {
 resource "aws_launch_configuration" "green_blue_lc" {
   name_prefix   = "green_blue_lc-"                            
   image_id      = data.aws_ami.amazon_linux.id
-  instance_type = "t3.micro"
+  instance_type = var.instance_type
   security_groups = [aws_security_group.green-blue-sg.id]     # We have defined security group in "sec-group.tf" file in this repo.
   user_data = file("user_data_apache.sh")                     # user_data_apache.sh is separate file in this repo. You can add your own script and adjust the view of your home page
 
@@ -67,11 +67,11 @@ resource "aws_launch_configuration" "green_blue_lc" {
 
 resource "aws_autoscaling_group" "green_blue_asg" {
   name                      = "ASG_${aws_launch_configuration.green_blue_lc.name}"    # We are using name this way in order to see which launch configuration our Auto scaling group uses
-  min_size                  = 2
-  max_size                  = 4
-  desired_capacity          = 3
-  health_check_grace_period = 300
-  health_check_type         = "ELB"
+  min_size                  = var.min_size                                            # You will need to type the amount when you run /terraform apply/ command
+  max_size                  = var.max_size                                            # You will need to type the amount when you run /terraform apply/ command
+  desired_capacity          = var.desired_size                                        # You will need to type the amount when you run /terraform apply/ command
+  health_check_grace_period = var.health_check_grace_period
+  health_check_type         = var.asg_health_check_type
   launch_configuration      = aws_launch_configuration.green_blue_lc.name
   vpc_zone_identifier       = [aws_default_subnet.default_sub_az1.id, aws_default_subnet.default_sub_az2.id]
 
@@ -149,7 +149,7 @@ resource "aws_lb_listener" "green-blue-alb-listener" {
   protocol          = "HTTP"
 
   default_action {
-    type             = "forward"
+    type             = var.alb_listener_action
     target_group_arn = aws_lb_target_group.green-blue-tg-group.arn
   }
 }
